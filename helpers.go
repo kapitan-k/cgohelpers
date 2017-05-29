@@ -75,7 +75,15 @@ func CFreeUnsafe(ptr unsafe.Pointer) {
 }
 
 func CFreeUnsafeMulti(ptrs []unsafe.Pointer) {
-	C.free_multi((*unsafe.Pointer)(unsafe.Pointer(&ptrs[0])), C.size_t(len(ptrs)))
+	if len(ptrs) > 0 {
+		C.free_multi((*unsafe.Pointer)(unsafe.Pointer(&ptrs[0])), C.size_t(len(ptrs)))
+	}
+}
+
+func CFreeUintptrMulti(ptrs []uintptr) {
+	if len(ptrs) > 0 {
+		C.free_multi((*unsafe.Pointer)(unsafe.Pointer(&ptrs[0])), C.size_t(len(ptrs)))
+	}
 }
 
 func CFreeBuf(data []byte) {
@@ -83,17 +91,30 @@ func CFreeBuf(data []byte) {
 }
 
 func CFreeBufMulti(datas [][]byte) {
-	l := len(datas)
-	ptrs := make([]unsafe.Pointer, l)
-	for i, data := range datas {
-		ptrs[i] = unsafe.Pointer(&data[0])
+	var ptrs []uintptr
+	for _, data := range datas {
+		if len(data) > 0 {
+			ptrs = append(ptrs, uintptr(unsafe.Pointer(&data[0])))
+		}
 	}
-	CFreeUnsafeMulti(ptrs)
+	CFreeUintptrMulti(ptrs)
+
 }
 
 func SetBytesSliceHeader(pData *[]byte, ptr uintptr, len, cap int) {
 	sh := (*reflect.SliceHeader)(unsafe.Pointer(pData))
 	sh.Data = ptr
+	sh.Len = len
+	sh.Cap = cap
+}
+
+func SetBytesSliceHeaderCapAndLen(pData *[]byte, len, cap int) {
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(pData))
+	sh.Len = len
+	sh.Cap = cap
+}
+
+func SliceHeaderSetCapAndLen(sh *reflect.SliceHeader, len, cap int) {
 	sh.Len = len
 	sh.Cap = cap
 }
